@@ -700,31 +700,30 @@ void LightmapGI::_gen_new_positions_from_octree(const GenProbesOctree *p_cell, f
 			const Vector3 *pp = probe_positions.ptr();
 			bool exists = false;
 			for (int j = 0; j < ppcount; j++) {
-				if (pp[j].distance_squared_to(real_pos) < (p_cell_size * p_cell_size * 0.25f)) {
-				//if (pp[j].is_equal_approx(real_pos)) {
+				if (pp[j].distance_to(real_pos) < (p_cell_size * 0.5f)) {
 					exists = true;
 					break;
 				}
 			}
 
 			// check for collision with static geo
-			auto spaceState = get_world_3d()->get_direct_space_state();
-			auto pointParams = PhysicsDirectSpaceState3D::PointParameters();
-			pointParams.position = real_pos;
-			pointParams.collide_with_areas = false;
+			auto space_state = get_world_3d()->get_direct_space_state();
+			auto point_params = PhysicsDirectSpaceState3D::PointParameters();
+			point_params.position = real_pos;
+			point_params.collide_with_areas = false;
 			PhysicsDirectSpaceState3D::ShapeResult results[10];
-			int intersectCount = spaceState->intersect_point(pointParams, results, 10);
-			if (intersectCount > 0) {
-				for (int j = 0; j < intersectCount; j++) {
-					auto obj = results[j];
-					StaticBody3D *static_body = cast_to<StaticBody3D>(obj.collider);
+			int intersect_count = space_state->intersect_point(point_params, results, 10);
+			if (intersect_count > 0) {
+				for (int j = 0; j < intersect_count; j++) {
+					auto shape_result = results[j];
+					StaticBody3D *static_body = cast_to<StaticBody3D>(shape_result.collider);
 					if (static_body) {
 						exists = true;
-						// if it's active on layer 9, omit it 
-						//CollisionObject3D *collision_obj = cast_to<CollisionObject3D>(static_body);
-						//if ((collision_obj->get_collision_layer() & (1 << 9)) != 0) {
-						//	exists = false;
-						//}
+						// make sure it is active on at least one of the layers of our mask
+						CollisionObject3D *collision_obj = cast_to<CollisionObject3D>(static_body);
+						if ((collision_obj->get_collision_layer() & generate_probes_mask) != 0) {
+							exists = false;
+						}
 					}
 				}
 			}
@@ -1507,6 +1506,34 @@ LightmapGI::GenerateProbes LightmapGI::get_generate_probes() const {
 	return gen_probes;
 }
 
+void LightmapGI::set_generate_probes_mask(uint32_t p_mask) {
+	generate_probes_mask = p_mask;
+}
+
+uint32_t LightmapGI::get_generate_probes_mask() const {
+	return generate_probes_mask;
+}
+
+
+void LightmapGI::set_generate_probes_mask_value(int p_layer_number, bool p_value) {
+	ERR_FAIL_COND_MSG(p_layer_number < 1, "Collision layer number must be between 1 and 32 inclusive.");
+	ERR_FAIL_COND_MSG(p_layer_number > 32, "Collision layer number must be between 1 and 32 inclusive.");
+	uint32_t mask = get_generate_probes_mask();
+	if (p_value) {
+		mask |= 1 << (p_layer_number - 1);
+	} else {
+		mask &= ~(1 << (p_layer_number - 1));
+	}
+	set_generate_probes_mask(mask);
+}
+
+bool LightmapGI::get_generate_probes_mask_value(int p_layer_number) const {
+	ERR_FAIL_COND_V_MSG(p_layer_number < 1, false, "Collision layer number must be between 1 and 32 inclusive.");
+	ERR_FAIL_COND_V_MSG(p_layer_number > 32, false, "Collision layer number must be between 1 and 32 inclusive.");
+	return get_generate_probes_mask() & (1 << (p_layer_number - 1));
+}
+
+
 void LightmapGI::set_camera_attributes(const Ref<CameraAttributes> &p_camera_attributes) {
 	camera_attributes = p_camera_attributes;
 }
@@ -1593,6 +1620,11 @@ void LightmapGI::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_camera_attributes", "camera_attributes"), &LightmapGI::set_camera_attributes);
 	ClassDB::bind_method(D_METHOD("get_camera_attributes"), &LightmapGI::get_camera_attributes);
 
+	ClassDB::bind_method(D_METHOD("set_generate_probes_mask", "mask"), &LightmapGI::set_generate_probes_mask);
+	ClassDB::bind_method(D_METHOD("get_generate_probes_mask"), &LightmapGI::get_generate_probes_mask);
+	ClassDB::bind_method(D_METHOD("set_generate_probes_mask_value", "layer_number", "value"), &LightmapGI::set_generate_probes_mask_value);
+	ClassDB::bind_method(D_METHOD("get_generate_probes_mask_value", "layer_number"), &LightmapGI::get_generate_probes_mask_value);
+
 	//	ClassDB::bind_method(D_METHOD("bake", "from_node"), &LightmapGI::bake, DEFVAL(Variant()));
 
 	ADD_GROUP("Tweaks", "");
@@ -1614,6 +1646,7 @@ void LightmapGI::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "camera_attributes", PROPERTY_HINT_RESOURCE_TYPE, "CameraAttributesPractical,CameraAttributesPhysical"), "set_camera_attributes", "get_camera_attributes");
 	ADD_GROUP("Gen Probes", "generate_probes_");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "generate_probes_subdiv", PROPERTY_HINT_ENUM, "Disabled,4,8,16,32"), "set_generate_probes", "get_generate_probes");
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "generate_probes_mask", PROPERTY_HINT_LAYERS_3D_PHYSICS), "set_generate_probes_mask", "get_generate_probes_mask");
 	ADD_GROUP("Data", "");
 	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "light_data", PROPERTY_HINT_RESOURCE_TYPE, "LightmapGIData"), "set_light_data", "get_light_data");
 
