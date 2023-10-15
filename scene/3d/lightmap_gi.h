@@ -158,7 +158,7 @@ private:
 	bool directional = false;
 	bool use_texture_for_bounces = true;
 	GenerateProbes gen_probes = GENERATE_PROBES_SUBDIV_8;
-	int generate_probes_mask = -1;
+	int probes_ignore_layers = 0;
 	Ref<CameraAttributes> camera_attributes;
 
 	Ref<LightmapGIData> light_data;
@@ -282,11 +282,11 @@ public:
 	void set_generate_probes(GenerateProbes p_generate_probes);
 	GenerateProbes get_generate_probes() const;
 
-	void set_generate_probes_mask(uint32_t p_mask);
-	uint32_t get_generate_probes_mask() const;
+	void set_probes_ignore_layers(uint32_t p_mask);
+	uint32_t get_probes_ignore_layers() const;
 
-	void set_generate_probes_mask_value(int p_layer_number, bool p_value);
-	bool LightmapGI::get_generate_probes_mask_value(int p_layer_number) const;
+	void set_probes_ignore_layers_value(int p_layer_number, bool p_value);
+	bool LightmapGI::get_probes_ignore_layers_value(int p_layer_number) const;
 
 	void set_camera_attributes(const Ref<CameraAttributes> &p_camera_attributes);
 	Ref<CameraAttributes> get_camera_attributes() const;

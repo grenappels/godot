@@ -721,7 +721,7 @@ void LightmapGI::_gen_new_positions_from_octree(const GenProbesOctree *p_cell, f
 						exists = true;
 						// make sure it is active on at least one of the layers of our mask
 						CollisionObject3D *collision_obj = cast_to<CollisionObject3D>(static_body);
-						if ((collision_obj->get_collision_layer() & generate_probes_mask) != 0) {
+						if ((collision_obj->get_collision_layer() & probes_ignore_layers) != 0) {
 							exists = false;
 						}
 					}
@@ -1506,31 +1506,31 @@ LightmapGI::GenerateProbes LightmapGI::get_generate_probes() const {
 	return gen_probes;
 }
 
-void LightmapGI::set_generate_probes_mask(uint32_t p_mask) {
-	generate_probes_mask = p_mask;
+void LightmapGI::set_probes_ignore_layers(uint32_t p_mask) {
+	probes_ignore_layers = p_mask;
 }
 
-uint32_t LightmapGI::get_generate_probes_mask() const {
-	return generate_probes_mask;
+uint32_t LightmapGI::get_probes_ignore_layers() const {
+	return probes_ignore_layers;
 }
 
 
-void LightmapGI::set_generate_probes_mask_value(int p_layer_number, bool p_value) {
+void LightmapGI::set_probes_ignore_layers_value(int p_layer_number, bool p_value) {
 	ERR_FAIL_COND_MSG(p_layer_number < 1, "Collision layer number must be between 1 and 32 inclusive.");
 	ERR_FAIL_COND_MSG(p_layer_number > 32, "Collision layer number must be between 1 and 32 inclusive.");
-	uint32_t mask = get_generate_probes_mask();
+	uint32_t mask = get_probes_ignore_layers();
 	if (p_value) {
 		mask |= 1 << (p_layer_number - 1);
 	} else {
 		mask &= ~(1 << (p_layer_number - 1));
 	}
-	set_generate_probes_mask(mask);
+	set_probes_ignore_layers(mask);
 }
 
-bool LightmapGI::get_generate_probes_mask_value(int p_layer_number) const {
+bool LightmapGI::get_probes_ignore_layers_value(int p_layer_number) const {
 	ERR_FAIL_COND_V_MSG(p_layer_number < 1, false, "Collision layer number must be between 1 and 32 inclusive.");
 	ERR_FAIL_COND_V_MSG(p_layer_number > 32, false, "Collision layer number must be between 1 and 32 inclusive.");
-	return get_generate_probes_mask() & (1 << (p_layer_number - 1));
+	return get_probes_ignore_layers() & (1 << (p_layer_number - 1));
 }
 
 
@@ -1620,10 +1620,10 @@ void LightmapGI::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_camera_attributes", "camera_attributes"), &LightmapGI::set_camera_attributes);
 	ClassDB::bind_method(D_METHOD("get_camera_attributes"), &LightmapGI::get_camera_attributes);
 
-	ClassDB::bind_method(D_METHOD("set_generate_probes_mask", "mask"), &LightmapGI::set_generate_probes_mask);
-	ClassDB::bind_method(D_METHOD("get_generate_probes_mask"), &LightmapGI::get_generate_probes_mask);
-	ClassDB::bind_method(D_METHOD("set_generate_probes_mask_value", "layer_number", "value"), &LightmapGI::set_generate_probes_mask_value);
-	ClassDB::bind_method(D_METHOD("get_generate_probes_mask_value", "layer_number"), &LightmapGI::get_generate_probes_mask_value);
+	ClassDB::bind_method(D_METHOD("set_probes_ignore_layers", "ignore_layers"), &LightmapGI::set_probes_ignore_layers);
+	ClassDB::bind_method(D_METHOD("get_probes_ignore_layers"), &LightmapGI::get_probes_ignore_layers);
+	ClassDB::bind_method(D_METHOD("set_probes_ignore_layers_value", "layer_number", "value"), &LightmapGI::set_probes_ignore_layers_value);
+	ClassDB::bind_method(D_METHOD("get_probes_ignore_layers_value", "layer_number"), &LightmapGI::get_probes_ignore_layers_value);
 
 	//	ClassDB::bind_method(D_METHOD("bake", "from_node"), &LightmapGI::bake, DEFVAL(Variant()));
 
@@ -1646,7 +1646,7 @@ void LightmapGI::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "camera_attributes", PROPERTY_HINT_RESOURCE_TYPE, "CameraAttributesPractical,CameraAttributesPhysical"), "set_camera_attributes", "get_camera_attributes");
 	ADD_GROUP("Gen Probes", "generate_probes_");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "generate_probes_subdiv", PROPERTY_HINT_ENUM, "Disabled,4,8,16,32"), "set_generate_probes", "get_generate_probes");
-	ADD_PROPERTY(PropertyInfo(Variant::INT, "generate_probes_mask", PROPERTY_HINT_LAYERS_3D_PHYSICS), "set_generate_probes_mask", "get_generate_probes_mask");
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "probes_ignore_layers", PROPERTY_HINT_LAYERS_3D_PHYSICS), "set_probes_ignore_layers", "get_probes_ignore_layers");
 	ADD_GROUP("Data", "");
 	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "light_data", PROPERTY_HINT_RESOURCE_TYPE, "LightmapGIData"), "set_light_data", "get_light_data");
 
