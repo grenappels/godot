@@ -39,6 +39,8 @@
 #include "scene/resources/environment.h"
 #include "scene/resources/image_texture.h"
 #include "scene/resources/sky.h"
+#include "scene/3d/physics_body_3d.h"
+#include "servers/physics_server_3d.h"
 
 void LightmapGIData::add_user(const NodePath &p_path, const Rect2 &p_uv_scale, int p_slice_index, int32_t p_sub_instance) {
 	User user;
@@ -698,9 +700,32 @@ void LightmapGI::_gen_new_positions_from_octree(const GenProbesOctree *p_cell, f
 			const Vector3 *pp = probe_positions.ptr();
 			bool exists = false;
 			for (int j = 0; j < ppcount; j++) {
-				if (pp[j].is_equal_approx(real_pos)) {
+				if (pp[j].distance_squared_to(real_pos) < (p_cell_size * p_cell_size * 0.25f)) {
+				//if (pp[j].is_equal_approx(real_pos)) {
 					exists = true;
 					break;
+				}
+			}
+
+			// check for collision with static geo
+			auto spaceState = get_world_3d()->get_direct_space_state();
+			auto pointParams = PhysicsDirectSpaceState3D::PointParameters();
+			pointParams.position = real_pos;
+			pointParams.collide_with_areas = false;
+			PhysicsDirectSpaceState3D::ShapeResult results[10];
+			int intersectCount = spaceState->intersect_point(pointParams, results, 10);
+			if (intersectCount > 0) {
+				for (int j = 0; j < intersectCount; j++) {
+					auto obj = results[j];
+					StaticBody3D *static_body = cast_to<StaticBody3D>(obj.collider);
+					if (static_body) {
+						exists = true;
+						// if it's active on layer 9, omit it 
+						//CollisionObject3D *collision_obj = cast_to<CollisionObject3D>(static_body);
+						//if ((collision_obj->get_collision_layer() & (1 << 9)) != 0) {
+						//	exists = false;
+						//}
+					}
 				}
 			}
 
